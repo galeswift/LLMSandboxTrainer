@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tensorium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app">
+  <nav class="map" aria-label="Floor map">
+    <a class="brand" href="#">
+      <span class="brand-name"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>Tensorium</span>
+      <span class="brand-sub">A hands-on science center for how language models work</span>
+    </a>
+    <div class="map-label">Floor map</div>
+    <ul class="map-list" id="map-list"></ul>
+    <div class="map-foot">
+      <span class="passport-total" id="passport-total">0 stamps</span>
+      <span class="hint">Stamps are saved in this browser.</span>
+      <button type="button" class="linkish" id="reset-stamps">Reset passport</button>
+    </div>
+  </nav>
+  <main id="main"></main>
+</div>
+<script src="js/core.js"></script>
+<script src="js/ex-tensors.js"></script>
+<script src="js/ex-neuron.js"></script>
+<script src="js/ex-descent.js"></script>
+<script src="js/ex-arena.js"></script>
+<script src="js/ex-tokens.js"></script>
+<script src="js/ex-embed.js"></script>
+<script src="js/ex-attention.js"></script>
+<script src="js/ex-generate.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
