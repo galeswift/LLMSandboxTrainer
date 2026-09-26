@@ -532,3 +532,84 @@ table.tt th { font-family: var(--f-body); font-size: 11.5px; text-transform: upp
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Wings, missions, glossary (guided layout) ---------- */
+.map-wing {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 12px 8px 4px;
+}
+.map-wing:first-child { padding-top: 0; }
+.map-link { padding-block: 5px; }
+.map-link .hall-tag { width: 26px; height: 26px; font-size: 13px; }
+.map-link { grid-template-columns: 26px 1fr auto; }
+@media (max-width: 900px) {
+  .map-wing { display: flex; align-items: center; padding: 0 2px 0 8px; white-space: nowrap; }
+}
+
+.wing { display: flex; flex-direction: column; gap: 12px; padding-top: 6px; }
+.wing-head { border-left: 5px solid var(--hc); padding-left: 12px; }
+.route-card .dots i.bonus { border-style: dashed; }
+
+.top-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 400px); gap: 22px; align-items: start; }
+@media (max-width: 900px) { .top-row { grid-template-columns: 1fr; } }
+.intro { font-size: 16px; }
+.mission-panel { gap: 10px; border-color: color-mix(in oklab, var(--accent) 40%, var(--line)); }
+.missions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mission {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.mission .stamp { width: 40px; height: 40px; font-size: 9px; }
+.mission.current { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 7%, var(--panel)); }
+.mission.current .challenge-title::after { content: "  ← you are here"; color: var(--accent); font-size: 12px; font-weight: 700; }
+.mission.done .challenge-title { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.mission-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mission .pill { vertical-align: 1px; }
+.how summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--accent); }
+.how p { font-size: 13px; background: var(--panel-2); border-radius: 8px; padding: 8px 10px; margin-top: 5px; }
+.all-done a { font-weight: 700; }
+
+details.deeper > summary { cursor: pointer; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+details.deeper > summary::-webkit-details-marker { display: none; }
+details.deeper > summary h2::after { content: " +"; color: var(--accent); }
+details.deeper[open] > summary h2::after { content: " −"; }
+details.deeper[open] > summary { margin-bottom: 8px; }
+
+.words { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; }
+.words dt { font-weight: 700; font-family: var(--f-display); }
+.words dd { margin: 0; color: var(--muted); font-size: 14px; }
+
+.hall-nav { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.big-number { font-family: var(--f-mono); font-size: 34px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.eq { font-family: var(--f-mono); font-size: 17px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; }
+.eq b { color: var(--accent); }
+.choice-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.word-btn { border: 1px solid var(--line-strong); background: var(--panel); border-radius: 8px; padding: 6px 10px; font-family: var(--f-mono); font-size: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.word-btn:hover { border-color: var(--accent); }
+.word-btn small { color: var(--muted); font-size: 11.5px; }
+.target { font-family: var(--f-mono); font-size: 15px; font-weight: 700; padding: 3px 10px; border-radius: 8px; border: 2px dashed var(--accent); display: inline-block; }
+details.more > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent); }
+button.word-choice {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  grid-template-columns: 90px minmax(0, 1fr) 48px;
+  font-size: 14px;
+}
+button.word-choice:hover { border-color: var(--accent); background: var(--panel-2); }
+a.btn { text-decoration: none; color: var(--ink); }
+a.btn.primary { color: var(--panel); }
+.route { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }

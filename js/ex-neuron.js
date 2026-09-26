@@ -17,30 +17,34 @@
 
   TM.register({
     id: "neuron",
-    hall: 2,
-    title: "Neuron Lab",
-    short: "Neuron",
+    wing: "neurons",
+    title: "Logic Gate Neuron",
+    short: "Logic gates",
     color: "--h2",
-    next: "descent",
-    tagline: "One artificial neuron: multiply, add, squash. Tune it by hand until it computes logic.",
+    tagline: "Give a neuron two inputs and it can make yes/no decisions, like the logic gates inside every computer.",
     intro:
-      "<p>A neuron takes inputs, multiplies each by a <b>weight</b>, adds a <b>bias</b>, and passes the total through an <b>activation function</b>. That's the whole thing. An LLM has billions of these weights, and training is the search for good values.</p><p>Here you are the training algorithm. Drag the sliders until the neuron's output matches the truth table for each logic gate.</p>",
-    explainTitle: "A neuron draws one straight line",
-    explain:
-      "<p>The neuron computes <code>z = w₁·x₁ + w₂·x₂ + b</code>. The set of points where <code>z = 0</code> is a straight line (the dashed line on the map). Everything on one side fires, everything on the other side doesn't.</p><ul><li><b>Weights</b> tilt the line. <b>Bias</b> slides it without tilting.</li><li>The <b>activation</b> shapes how the output changes near the line. A step is a hard yes/no; sigmoid and tanh are smooth, which matters in the next halls, because smooth functions have slopes we can follow downhill.</li><li><b>XOR</b> needs the two corners (0,1) and (1,0) on one side and the other two corners on the other side. No single straight line can do that. This limit stalled neural network research in 1969. The fix is to stack neurons in layers, which you'll do in Hall 4.</li></ul>",
-    challenges: [
-      { id: "and", title: "Build an AND gate", hint: "Fire only when both inputs are 1." },
-      { id: "or", title: "Build an OR gate", hint: "Fire when at least one input is 1." },
-      { id: "nand", title: "Build a NAND gate", hint: "The opposite of AND. Try negative weights." },
-      { id: "xor", title: "Face the XOR wall", hint: "Try XOR, then open the explanation for why it can't work." },
+      "<p>This neuron has two inputs (each 0 or 1), two weights, and a bias. It adds up <code>w₁·x₁ + w₂·x₂ + b</code> and fires (outputs 1) if the total is above 0.</p><p>Your job: set the weights and bias so the neuron follows each rule in the table. The square map shows all four input combos. Move the dashed line so the filled dots land on the bright side.</p>",
+    words: [
+      ["AND", "Yes only if both inputs are yes."],
+      ["OR", "Yes if at least one input is yes."],
+      ["XOR", "“Exclusive or.” Yes if exactly one input is yes, but not both."],
+      ["Decision line", "The dashed line where the total is exactly 0. One side fires, the other doesn't."],
     ],
-    tries: ["Switch to sigmoid and slowly raise both weights. The soft edge gets sharper until it looks like a step.", "Set both weights to 0. Now only the bias decides, and the neuron ignores its inputs."],
+    explainTitle: "One neuron, one straight line",
+    explain:
+      "<p>Weights tilt the dashed line and the bias slides it. But it's always one straight line, and that's the neuron's limit.</p><ul><li><b>XOR</b> needs (0,1) and (1,0) on one side and (0,0) and (1,1) on the other. They're on opposite diagonals, and no single straight line can split them. This problem stalled AI research for years around 1970.</li><li>The fix is to use more neurons in <b>layers</b>. Each draws its own line, and the next layer combines them. You'll watch a layered network beat XOR in the Training Arena.</li></ul>",
+    challenges: [
+      { id: "and", title: "Build an AND gate", hint: "Fire only when both inputs are 1.", how: "Set both weights to 1. Then lower the bias until only the (1,1) corner fires. Try b = −1.5: then 1 + 1 − 1.5 = 0.5 (fires), but 1 + 0 − 1.5 = −0.5 (doesn't)." },
+      { id: "or", title: "Build an OR gate", hint: "Fire when at least one input is 1.", how: "Keep both weights at 1 and raise the bias to −0.5. Now any single 1 is enough to push the total above 0." },
+      { id: "xor", title: "Try XOR, and find out why it's impossible", hint: "Pick XOR and give it a go.", how: "Try for a bit. Then press the “Why won't XOR work?” button that appears under the table." },
+      { id: "nand", bonus: true, title: "Build a NAND gate (NOT AND)", hint: "The exact opposite of AND.", how: "Flip the AND answer: weights −1 and −1, bias 1.5." },
+    ],
     mount(stage, ctx) {
-      const s = { w1: 0.6, w2: -0.4, b: 0.2, act: "sigmoid", gate: "AND", x1: 1, x2: 0 };
+      const s = { w1: 0.5, w2: -0.5, b: 0.5, act: "step", gate: "AND", x1: 1, x2: 0 };
       const f1 = (v) => TM.fmt(v, 1);
-      const sw1 = TM.slider({ label: "weight w₁", min: -6, max: 6, step: 0.1, value: s.w1, fmt: f1, onInput: (v) => ((s.w1 = v), update()) });
-      const sw2 = TM.slider({ label: "weight w₂", min: -6, max: 6, step: 0.1, value: s.w2, fmt: f1, onInput: (v) => ((s.w2 = v), update()) });
-      const sb = TM.slider({ label: "bias b", min: -6, max: 6, step: 0.1, value: s.b, fmt: f1, onInput: (v) => ((s.b = v), update()) });
+      const sw1 = TM.slider({ label: "weight w₁", min: -3, max: 3, step: 0.5, value: s.w1, fmt: f1, onInput: (v) => ((s.w1 = v), update()) });
+      const sw2 = TM.slider({ label: "weight w₂", min: -3, max: 3, step: 0.5, value: s.w2, fmt: f1, onInput: (v) => ((s.w2 = v), update()) });
+      const sb = TM.slider({ label: "bias b", min: -3, max: 3, step: 0.5, value: s.b, fmt: f1, onInput: (v) => ((s.b = v), update()) });
       const actSeg = TM.seg({ label: "Activation", options: Object.entries(ACTS).map(([k, a]) => [k, a.name]), value: s.act, onChange: (v) => ((s.act = v), update()) });
       const gateSeg = TM.seg({ label: "Target gate", options: Object.keys(GATES).map((g) => [g, g]), value: s.gate, onChange: (v) => ((s.gate = v), (xorReveal.hidden = true), update()) });
 
@@ -96,7 +100,7 @@
       const xorReveal = el(
         "div",
         { class: "readout", hidden: true },
-        "XOR wants (0,1) and (1,0) to fire, but (0,0) and (1,1) not to. Look at the map: those pairs sit on opposite diagonals. A single neuron can only split the square with one straight line, and no straight line separates diagonals. You need a second layer. See Hall 4, where a hidden layer bends the boundary."
+        "XOR wants (0,1) and (1,0) to fire, but (0,0) and (1,1) not to. Look at the map: those pairs sit on opposite diagonals. A single neuron can only split the square with one straight line, and no straight line separates diagonals. You need a second layer of neurons. See the Training Arena, where extra layers bend the boundary."
       );
 
       const out = (x1, x2) => ACTS[s.act].f(s.w1 * x1 + s.w2 * x2 + s.b);
@@ -225,7 +229,7 @@
           el(
             "div",
             { class: "split" },
-            el("div", { class: "controls" }, gateSeg.el, sw1.el, sw2.el, sb.el, actSeg.el),
+            el("div", { class: "controls" }, gateSeg.el, sw1.el, sw2.el, sb.el),
             el("div", { class: "controls" }, svg, el("div", { class: "split wide-left" }, el("div", { class: "viz-wrap" }, map, el("p", { class: "note" }, "Input map: brightness is the output for every (x₁, x₂). Dots are the four truth-table rows; filled means the target is 1.")), el("div", { class: "controls" }, el("div", { class: "tbl-wrap" }, table), verdict, xorBtn, xorReveal)))
           )
         )

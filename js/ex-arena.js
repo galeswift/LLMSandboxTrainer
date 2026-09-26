@@ -138,27 +138,33 @@
 
   TM.register({
     id: "arena",
-    hall: 4,
+    wing: "learning",
     title: "Training Arena",
-    short: "Training",
+    short: "Training arena",
     color: "--h4",
-    next: "tokens",
-    tagline: "Stack neurons into layers and watch backpropagation teach them, one step at a time.",
+    tagline: "Stack neurons into layers, press Train, and watch a real network learn to sort dots.",
     intro:
-      "<p>This is a real neural network training live in your browser. Each dot is a training example with a label (blue or orange). The network sees each point's coordinates and has to guess its color. The background shows what the network currently believes about every spot on the map.</p><p>Pick a dataset, shape the network, and press Train. Hollow dots are held-out <b>test</b> points the network never trains on. They tell you whether it learned the pattern or just memorized.</p>",
-    explainTitle: "Forward, backward, update, repeat",
-    explain:
-      "<p>Each training step has three parts. This loop is identical in a 2-weight toy and a 400-billion-weight LLM.</p><ul><li><b>Forward pass</b>: push every example through the layers (matmuls from Hall 1, neurons from Hall 2) to get predictions, then score them with a <b>loss</b>. Here it's cross-entropy, the same loss used to train LLMs.</li><li><b>Backward pass</b>: <b>backpropagation</b> uses the chain rule to work out, for every weight, which direction would lower the loss. That's the gradient from Hall 3, computed for all weights at once.</li><li><b>Update</b>: nudge every weight a little bit downhill.</li></ul><p><b>Hidden layers</b> are what beat the XOR wall. Each hidden neuron draws one line; the next layer combines those lines into curves and islands. More neurons give more capacity, but also more room to memorize noise, so watch the gap between train and test accuracy.</p>",
-    challenges: [
-      { id: "linear", title: "Logistic regression", hint: "Solve Blobs with zero hidden layers (95%+ test accuracy)." },
-      { id: "xor", title: "Break the XOR wall", hint: "Reach 95%+ test accuracy on XOR." },
-      { id: "feature", title: "Feature engineer", hint: "Solve Circle with zero hidden layers. Extra input features are allowed." },
-      { id: "spiral", title: "Tame the spiral", hint: "Reach 90%+ test accuracy on Spiral." },
-      { id: "tiny", title: "Minimalist", hint: "Solve Spiral (90%+) using 8 or fewer hidden neurons in total." },
+      "<p>Each dot is an example with a label: blue or orange. The network sees a dot's position and has to guess its color. The background shades show what the network currently guesses for every spot.</p><p>Press <b>Train</b> and watch the shading learn the pattern. Hollow dots are <b>test</b> dots the network never trains on. They check whether it really learned the pattern or just memorized.</p>",
+    words: [
+      ["Layer", "A column of neurons. Each neuron in a layer looks at everything the layer before it produced."],
+      ["Hidden layer", "A layer between the input and the answer. More hidden neurons can draw more complicated shapes."],
+      ["Accuracy", "The percent of dots the network colors correctly."],
+      ["Test data", "Examples kept aside to check the model on things it hasn't seen."],
+      ["Overfitting", "Memorizing the training dots instead of learning the real pattern."],
     ],
-    tries: ["Set the learning rate to its maximum with SGD and watch the loss curve go wild.", "Crank noise to 0.5 and use 3 layers of 12 neurons. Watch train accuracy climb while test accuracy stalls: that's overfitting.", "Switch to ReLU and look at the boundary. It's made of straight segments, because ReLU is piecewise linear."],
+    explainTitle: "Why layers beat a single neuron",
+    explain:
+      "<p>A single neuron can only draw one straight line (remember the XOR wall?). A hidden layer has several neurons, each drawing its own line, and the output neuron combines them. Together they can draw curves, rings, and islands.</p><ul><li>Every training step is the same loop as the study-hours line: predict, measure the loss, find the slope for every weight (<b>backpropagation</b>), and nudge.</li><li>The lines in the network diagram are the weights. Blue means positive, red means negative, and thicker means bigger. Watch them change while it trains.</li><li>A chatbot is this same idea with hundreds of layers and billions of weights, trained to guess the next word instead of a color.</li></ul>",
+    challenges: [
+      { id: "blobs", title: "Train on Blobs", hint: "Press Train and wait for 90%+ test accuracy.", how: "Blobs is already selected. Just press Train. The two groups are easy to split with one straight line." },
+      { id: "circle", title: "Solve Circle", hint: "Reach 90%+ test accuracy.", how: "Click “Circle”, then press Train. The hidden layer lets the network draw a ring. If it gets stuck, press “Re-roll weights” and train again." },
+      { id: "xor", title: "Beat the XOR wall", hint: "Reach 90%+ test accuracy on XOR.", how: "Click “XOR” and press Train. This is the pattern one neuron couldn't do. With a hidden layer it can." },
+      { id: "nohidden", title: "See why layers matter", hint: "Try Circle with 0 hidden layers.", how: "Click Circle, press − on “Hidden layers” until it says 0, then Train for a while. It can only draw a straight line, so it gets stuck around 50–60%." },
+      { id: "spiral", bonus: true, title: "Tame the spiral", hint: "90%+ test accuracy on Spiral.", how: "Use 2 hidden layers with 8 neurons each, then Train. Be patient: it takes a while." },
+      { id: "tiny", bonus: true, title: "Minimalist", hint: "Spiral at 90%+ with 8 or fewer hidden neurons in total.", how: "Open “More controls” and try the extra input features, like sin." },
+    ],
     mount(stage, ctx) {
-      const s = { data: "xor", noise: 0.1, layers: 1, width: 4, act: "tanh", optim: "adam", lr: 0.03, sq: false, xy: false, sin: false, seed: 1 };
+      const s = { data: "blobs", noise: 0.1, layers: 1, width: 4, act: "tanh", optim: "adam", lr: 0.03, sq: false, xy: false, sin: false, seed: 1 };
       let pts, X, Y, Xt, Yt, net, steps = 0, losses = [], running = false;
       const W = 380, H = 380;
       const cv = TM.canvas(W, H);
@@ -330,9 +336,10 @@
         stTe.set(`${Math.round(te * 100)}%`);
         stParams.set(net.layers.reduce((n, L) => n + L.W.length + L.b.length, 0));
         if (steps > 0) {
-          if (s.data === "blobs" && s.layers === 0 && te >= 0.95) ctx.award("linear");
-          if (s.data === "xor" && te >= 0.95) ctx.award("xor");
-          if (s.data === "circle" && s.layers === 0 && te >= 0.95) ctx.award("feature");
+          if (s.data === "blobs" && te >= 0.9) ctx.award("blobs");
+          if (s.data === "circle" && te >= 0.9) ctx.award("circle");
+          if (s.data === "xor" && te >= 0.9) ctx.award("xor");
+          if (s.data === "circle" && s.layers === 0 && steps >= 200 && te < 0.8) ctx.award("nohidden");
           if (s.data === "spiral" && te >= 0.9) ctx.award("spiral");
           if (s.data === "spiral" && te >= 0.9 && s.layers * s.width <= 8) ctx.award("tiny");
         }
@@ -389,13 +396,22 @@
             "div",
             { class: "controls" },
             dataSeg.el,
-            noiseS.el,
-            el("div", { class: "ctl-group" }, el("span", { class: "ctl-label" }, "Extra input features"), el("div", { class: "ctl-row" }, feat("sq", "x², y²"), feat("xy", "x·y"), feat("sin", "sin"))),
             el("div", { class: "ctl-row" }, layersSt.el, widthSt.el),
-            actSeg.el,
-            optSeg.el,
-            lrS.el,
-            spd.el
+            el(
+              "details",
+              { class: "more" },
+              el("summary", null, "More controls"),
+              el(
+                "div",
+                { class: "controls", style: { marginTop: "10px" } },
+                noiseS.el,
+                el("div", { class: "ctl-group" }, el("span", { class: "ctl-label" }, "Extra input features"), el("div", { class: "ctl-row" }, feat("sq", "x², y²"), feat("xy", "x·y"), feat("sin", "sin"))),
+                actSeg.el,
+                optSeg.el,
+                lrS.el,
+                spd.el
+              )
+            )
           ),
           el(
             "div",

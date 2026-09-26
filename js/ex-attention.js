@@ -28,27 +28,7 @@
   const qOf = (tok, variant) => (tok === "it" ? (variant === "tired" ? [1.5, 2, 0, 0, 0, 0] : [1.5, 0, 2, 0, 0, 0]) : Q[tok]);
   const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
 
-  TM.register({
-    id: "attention",
-    hall: 7,
-    title: "Attention Theater",
-    short: "Attention",
-    color: "--h7",
-    next: "generate",
-    tagline: "How a token decides which other tokens matter: a soft, blendable dictionary lookup.",
-    intro:
-      "<p>Embeddings give each token a meaning on its own, but <i>it</i> means nothing until you know what it refers to. <b>Attention</b> lets every token gather information from the others. Each token produces a <b>query</b> (what am I looking for?), a <b>key</b> (what do I contain?), and a <b>value</b> (what I'll hand over if picked).</p><p>Start in the lookup lab: drag the query arrow and watch it blend the values it points toward.</p>",
-    explainTitle: "softmax(Q·Kᵀ / √d) · V",
-    explain:
-      "<p>That formula is the whole mechanism, and you've now run every piece of it:</p><ul><li><b>Q·K</b>: dot each query with every key. Pointing the same way gives a big score (Hall 1's dot product again).</li><li><b>÷ √d</b>: scale the scores down so they don't grow with the vector size. The sharpness slider plays this role: low values blend, high values pick one winner.</li><li><b>softmax</b>: turn scores into weights that are positive and sum to 1.</li><li><b>· V</b>: take the weighted average of the values. That average becomes the token's new, context-aware vector.</li></ul><p>In the sentence theater we set the vectors by hand to act like a trained model. In a real transformer, Q, K and V come from three learned weight matrices, and there are dozens of <b>heads</b> per layer, each learning its own kind of lookup: grammar, coreference, position, and more. The <b>causal mask</b> stops a token from looking at words that come after it, which is what lets a model be trained to predict the next token without cheating.</p>",
-    challenges: [
-      { id: "sharp", title: "Hard lookup", hint: "In the lookup lab, put 90% or more of the weight on a single key." },
-      { id: "soft", title: "Perfect blend", hint: "Spread the weight so no key gets more than 35%." },
-      { id: "it", title: "What is 'it'?", hint: "Switch the sentence to 'wide' and see where 'it' looks now." },
-      { id: "mask", title: "No peeking", hint: "Turn on the causal mask and select the very first token." },
-    ],
-    tries: ["Shrink the query arrow to almost nothing. Short queries make every score near zero, so attention spreads evenly.", "In the sentence, click 'too' and 'was'. They look for the adjective, not the nouns."],
-    mount(stage, ctx) {
+  function mountAttention(stage, ctx, part) {
       // ---------- Lookup lab ----------
       const W = 340, H = 340, R = 2.2;
       const cv = TM.canvas(W, H);
@@ -123,6 +103,7 @@
         const mx = Math.max(...wts);
         if (mx >= 0.9) ctx.award("sharp");
         if (mx <= 0.35) ctx.award("soft");
+        if (wts[3] > 0.6) ctx.award("aim");
       }
       let dragging = false;
       const moveQ = (e) => {
@@ -133,7 +114,7 @@
       cv.addEventListener("pointerdown", (e) => { dragging = true; cv.setPointerCapture(e.pointerId); moveQ(e); });
       cv.addEventListener("pointermove", (e) => dragging && moveQ(e));
       cv.addEventListener("pointerup", () => (dragging = false));
-      const sharpS = TM.slider({ label: "Sharpness (1/temperature)", min: 0.1, max: 6, step: 0.1, value: sharp, fmt: (v) => v.toFixed(1), onInput: (v) => { sharp = v; drawLab(); drawSentence(); } });
+      const sharpS = TM.slider({ label: "Sharpness (how picky)", min: 0.1, max: 6, step: 0.1, value: sharp, fmt: (v) => v.toFixed(1), onInput: (v) => { sharp = v; drawLab(); drawSentence(); } });
 
       const lab = el(
         "div",
@@ -204,10 +185,12 @@
         const top = order[0][0];
         sentNote.textContent = `"${toks[st.sel]}" attends most to "${toks[top]}" (${Math.round(order[0][1] * 100)}%)` + (order[1] && order[1][1] > 0.01 ? `, then "${toks[order[1][0]]}" (${Math.round(order[1][1] * 100)}%).` : ".") + `\nquery · key scores: ${sc.map((v, j) => `${toks[j]} ${v === -Infinity ? "masked" : TM.fmt(v, 1)}`).join(" · ")}`;
         if (st.variant === "wide" && toks[st.sel] === "it" && toks[top] === "street") ctx.award("it");
+        if (st.variant === "tired" && toks[st.sel] === "it" && toks[top] === "animal" && st.touched) ctx.award("it1");
         if (st.causal && st.sel === 0) ctx.award("mask");
       }
       function select(i) {
         st.sel = i;
+        st.touched = true;
         drawSentence();
       }
       const varSeg = TM.seg({ label: "Last word", options: [["tired", "…too tired"], ["wide", "…too wide"]], value: st.variant, onChange: (v) => { st.variant = v; drawSentence(); } });
@@ -225,9 +208,63 @@
         el("p", { class: "note" }, "Rows are queries (the word doing the looking), columns are keys. Every row sums to 100%. Here 'it' already carries a hint from its adjective, as if earlier layers had mixed it in.")
       );
 
-      stage.append(lab, theater);
+      stage.append(part === "lab" ? lab : theater);
       drawLab();
       drawSentence();
+  }
+
+  TM.register({
+    id: "spotlight",
+    wing: "language",
+    title: "Attention Spotlight",
+    short: "Attention",
+    color: "--h7",
+    tagline: "Attention lets a word look around the sentence and pull in information from the words that matter.",
+    intro:
+      "<p>A word's meaning depends on its neighbors. <b>Attention</b> is how a model lets each word gather information from other words. The word sends out a <b>query</b> arrow (“what am I looking for?”). Every other word has a <b>key</b> arrow (“here's what I have”).</p><p>Arrows pointing the same way get a high score, and those words get more of the spotlight. Drag anywhere on the chart to aim the query.</p>",
+    words: [
+      ["Attention", "Deciding how much each other word matters right now, as percentages that add to 100%."],
+      ["Query", "What a word is looking for."],
+      ["Key", "What a word offers to others."],
+      ["Value", "The information a word hands over if it gets attention. Here, a color."],
+    ],
+    explainTitle: "Dot products again!",
+    explain:
+      "<p>The score for each key is a <b>dot product</b> of the query and key arrows, the same multiply-and-add from the Numbers wing. Then a function called <b>softmax</b> turns the scores into percentages that add to 100%.</p><ul><li>The output is a blend of the values, mixed by those percentages. Watch the color swatch.</li><li><b>Sharpness</b> controls how picky it is. High sharpness gives almost all attention to the top match. Low sharpness spreads it out evenly.</li><li>In a chatbot, every word does this with every other word, in dozens of separate “heads” at once, in every layer. That's the <b>transformer</b>, the T in GPT.</li></ul>",
+    challenges: [
+      { id: "aim", title: "Point the spotlight at “music”", hint: "Give music more than 60% of the attention.", how: "Drag on the chart toward the bottom-right, where the music arrow points." },
+      { id: "sharp", title: "Hard lookup: 90% on one key", hint: "Aim at one arrow and raise the sharpness.", how: "Point the query right along one key arrow, then drag the sharpness slider up to 4 or more." },
+      { id: "soft", title: "Perfect blend: no key above 35%", hint: "Make attention spread out evenly.", how: "Drag the query to the very center of the chart (a tiny arrow), or turn the sharpness all the way down." },
+    ],
+    mount(stage, ctx) {
+      mountAttention(stage, ctx, "lab");
+    },
+  });
+
+  TM.register({
+    id: "itref",
+    wing: "language",
+    title: "Who Is “It”?",
+    short: "Who is “it”?",
+    color: "--h7",
+    tagline: "Watch attention figure out what a pronoun refers to, using the rest of the sentence as clues.",
+    intro:
+      "<p>Read these two sentences: “The animal didn't cross the street because <b>it</b> was too <i>tired</i>” and “…because <b>it</b> was too <i>wide</i>.” You instantly know “it” means the animal in one and the street in the other. Attention is how a model works that out.</p><p>Click any word to see where it looks. The bar under each word shows how much attention it gets.</p>",
+    words: [
+      ["Pronoun", "A word like “it” or “she” that stands in for something else."],
+      ["Self-attention", "Every word in a sentence paying attention to every other word in that same sentence."],
+      ["Causal mask", "A rule that blocks words from looking ahead at words that come later."],
+    ],
+    explainTitle: "How a chatbot avoids cheating",
+    explain:
+      "<p>The grid shows every word's attention at once. Each row is one word looking, and each column is a word being looked at.</p><ul><li>We set the arrows by hand here to behave the way a trained model's do. In a real model, they're learned during training.</li><li>A chatbot writes one word at a time, so while training it mustn't peek at the words it's supposed to guess. The <b>causal mask</b> blocks every word from seeing words to its right. Turn it on and see the grid become a triangle.</li><li>Here “it” already carries a hint of its adjective (tired or wide), as if an earlier layer mixed that in. Real chatbots stack dozens of attention layers, so clues from anywhere in the text can flow into each word.</li></ul>",
+    challenges: [
+      { id: "it1", title: "Find what “it” means when the animal is tired", hint: "Click the word “it”.", how: "With “…too tired” selected, click “it” in the sentence. Read the message under the sentence." },
+      { id: "it", title: "Now make “it” mean the street", hint: "Switch the last word to “wide”.", how: "Click “…too wide”, then click “it” again. Where does it look now?" },
+      { id: "mask", title: "Turn on the no-peeking rule", hint: "Use the causal mask and click the first word.", how: "Tick “Causal mask”, then click “The”. The first word can only see itself." },
+    ],
+    mount(stage, ctx) {
+      mountAttention(stage, ctx, "theater");
     },
   });
 })();

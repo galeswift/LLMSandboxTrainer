@@ -1,17 +1,15 @@
 # Tensorium
 
-A hands-on science center for how language models work. Eight exhibit halls take you from a single grid of numbers to a machine that writes text. Every exhibit is a live model running in your browser, with puzzles that earn passport stamps.
+A hands-on science center for how language models work, pitched at a high-school level. Nineteen small halls, grouped into four wings, each teach one idea. Every hall has a few short missions (each with a "Show me how" hint), plus optional bonus missions and a collapsible "Go deeper" section.
 
-| Hall | Exhibit | What you play with |
-| --- | --- | --- |
-| 1 | Tensor Hall | Build tensors, trace cells into memory, reshape (with `-1`), transpose, and a matrix-multiply machine |
-| 2 | Neuron Lab | Hand-tune one neuron into AND / OR / NAND gates, then hit the XOR wall |
-| 3 | Gradient Descent Hill | Roll a ball down loss landscapes; tune the learning rate and momentum; find local minima and divergence |
-| 4 | Training Arena | A real multilayer network trained live with backprop (SGD or Adam) on blobs, circle, XOR and spiral data |
-| 5 | Tokenizer Workshop | Build a byte-pair-encoding vocabulary one merge at a time, then tokenize new text |
-| 6 | Embedding Space | Words as vectors: cosine similarity, analogy arithmetic, PCA |
-| 7 | Attention Theater | Query/key/value lookup with softmax sharpness, plus sentence self-attention with a causal mask |
-| 8 | Generation Station | Next-character prediction with context size, temperature and top-k sampling |
+| Wing | Halls |
+| --- | --- |
+| Numbers | 1 Lists & Grids · 2 Reshape Room · 3 The Dot Product · 4 Matrix Multiply Machine |
+| Neurons | 5 The Line Neuron (y = mx + b) · 6 Logic Gate Neuron · 7 Squish Functions |
+| Learning | 8 The Wrongness Score · 9 Roll Downhill · 10 Two-Knob Landscape · 11 The Machine Learns · 12 Training Arena |
+| Language | 13 Text to Numbers · 14 Tokenizer Workshop · 15 Word Map · 16 Attention Spotlight · 17 Who Is "It"? · 18 Next Word Game · 19 Generation Station |
+
+Every exhibit is a live model running in the browser: no videos, no server.
 
 ## Run it
 
@@ -35,5 +33,5 @@ node tools/bundle.mjs --fragment  # body-only variant for embedding
 - `index.html`: shell (floor map + main area)
 - `css/styles.css`: design tokens (light and dark) and components
 - `js/core.js`: DOM helpers, controls, math utilities, passport stamps
-- `js/ex-*.js`: one file per hall; each calls `TM.register({...})`
+- `js/ex-*.js`: one file per hall (attention holds two); each calls `TM.register({...})`. Hall numbers follow script order in `index.html`.
 - `js/app.js`: routing (`#tensors`, `#arena`, …), lobby, exhibit page frame

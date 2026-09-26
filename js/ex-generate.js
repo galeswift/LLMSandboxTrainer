@@ -36,24 +36,29 @@
 
   TM.register({
     id: "generate",
-    hall: 8,
+    wing: "language",
     title: "Generation Station",
     short: "Generation",
     color: "--h8",
-    next: null,
-    tagline: "Predict one token, pick one, append it, repeat. That loop is how every chatbot writes.",
+    tagline: "The same guessing game, letter by letter, with the two knobs chatbot apps really use: temperature and top-k.",
     intro:
-      "<p>An LLM's only job is to output a probability for every possible next token. Writing a whole answer is just that step in a loop: predict, <b>sample</b> one token, add it to the text, and predict again.</p><p>This station runs the loop with a tiny model that predicts the next <i>character</i> by counting what followed the same few characters in its training text. Press <b>Step</b> to watch a single prediction, then turn the knobs that real chat apps expose: <b>temperature</b> and <b>top-k</b>.</p>",
-    explainTitle: "Same loop, bigger brain",
-    explain:
-      "<p>A real LLM swaps the counting table for the transformer you've been assembling: tokens (Hall 5) become embeddings (Hall 6), pass through layers of attention (Hall 7) and neurons (Halls 2 and 4), and come out as one score per vocabulary token. Softmax turns those scores into the probabilities you see in the bars.</p><ul><li><b>Context window</b>: this model only looks back a few characters. An LLM looks back over hundreds of thousands of tokens, and attention decides what in there matters.</li><li><b>Temperature</b> divides the scores before softmax. Near 0 always picks the top token (greedy), which tends to loop. High values flatten the odds and produce nonsense.</li><li><b>Top-k</b> throws away everything except the k likeliest tokens before sampling, cutting off the weird tail.</li><li><b>Bits per character</b> is cross-entropy: how surprised the model is by real text. Pretraining an LLM means pushing exactly this number down. Here it's measured on the training text itself, so long contexts look amazing only because they memorize.</li></ul>",
-    challenges: [
-      { id: "step", title: "One prediction", hint: "Press Step and read the probability bars." },
-      { id: "greedy", title: "Stuck in a loop", hint: "Generate 40+ characters in a row at temperature 0." },
-      { id: "wild", title: "Word salad", hint: "Generate 40+ characters in a row at temperature 2 or higher." },
-      { id: "parrot", title: "Parrot", hint: "With context 5 or more, generate 40 characters that copy the training text exactly." },
+      "<p>This model predicts the next <i>letter</i> by looking at the last few letters and checking what came next in its reading. Press <b>Step</b> to watch one guess, or <b>Generate</b> to let it write.</p><p>Then play with <b>temperature</b>, which controls how adventurous the picks are. It's a real setting in chatbot tools.</p>",
+    words: [
+      ["Context window", "How many previous letters (or tokens) the model looks at. Chatbots look at thousands of tokens."],
+      ["Temperature", "Low = always pick the favorite (safe, repetitive). High = pick long shots more often (creative, then nonsense)."],
+      ["Top-k", "Only allow the k likeliest choices, throwing away the weird ones."],
+      ["Greedy", "Temperature 0: always pick the single most likely option."],
     ],
-    tries: ["Set context to 1. Each letter only knows the one before it, so you get pronounceable gibberish.", "Paste your own text into the box and train on it. Anything with lots of repetition works well.", "Set top-k to 1. That's the same as greedy decoding, whatever the temperature says."],
+    explainTitle: "The whole museum in one loop",
+    explain:
+      "<p>A chatbot runs this exact loop: guess the chances for the next token, pick one, add it, and repeat. The only difference is what makes the chances. In a chatbot, that's everything from the other halls: tokens become embeddings, flow through layers of attention and neurons (all matrix multiplies), and come out as a score for every token.</p><ul><li><b>Temperature 0</b> tends to get stuck in loops, which is why chatbots usually add a bit of randomness.</li><li><b>High temperature</b> flattens the chances until nonsense wins.</li><li><b>A longer context</b> makes the text more sensible. With a long enough context, this little model starts copying its reading word for word. Big models are trained on so much text that they mostly learn patterns instead of copying.</li></ul>",
+    challenges: [
+      { id: "step", title: "Watch one guess", hint: "Press Step once and read the bars.", how: "Press Step. The bars show each possible next letter and its chance. The dark one was picked." },
+      { id: "greedy", title: "Get stuck in a loop", hint: "Set temperature to 0 and generate.", how: "Drag Temperature all the way left to 0 (greedy), then press “Generate 120”. Look for repeating phrases." },
+      { id: "wild", title: "Make word salad", hint: "Set temperature to 2 or more and generate.", how: "Drag Temperature to 2.0 or higher, press “Reset to prompt”, then “Generate 120”." },
+      { id: "context", title: "See how context helps", hint: "Generate with context window 5.", how: "Click 5 under “Context window”, press “Reset to prompt”, then Generate. The words look much more real than with 1." },
+      { id: "parrot", bonus: true, title: "Catch it copying", hint: "With context 5 or more, generate 40 letters copied exactly from its reading.", how: "Set context to 6 and temperature to 0.5, then Generate. It often repeats whole sentences." },
+    ],
     mount(stage, ctx) {
       const s = { corpus: "rhymes", n: 3, temp: 0.8, topk: 30, seed: "the little " };
       let text = CORPORA[s.corpus];
@@ -114,8 +119,9 @@
         out += pick;
         streak.t0 = s.temp === 0 ? streak.t0 + 1 : 0;
         streak.hot = s.temp >= 2 ? streak.hot + 1 : 0;
-        if (streak.t0 >= 40) ctx.award("greedy");
-        if (streak.hot >= 40) ctx.award("wild");
+        if (streak.t0 >= 20) ctx.award("greedy");
+        if (streak.hot >= 20) ctx.award("wild");
+        if (s.n >= 5 && out.length - genStart >= 30) ctx.award("context");
         const gen = out.slice(genStart);
         if (s.n >= 5 && gen.length >= 40 && text.includes(gen.slice(-40))) ctx.award("parrot");
         if (showBars) renderBars(dist, pick, context, k);

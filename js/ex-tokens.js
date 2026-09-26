@@ -37,24 +37,28 @@
 
   TM.register({
     id: "tokens",
-    hall: 5,
+    wing: "language",
     title: "Tokenizer Workshop",
-    short: "Tokens",
+    short: "Tokenizer",
     color: "--h5",
-    next: "embed",
-    tagline: "Models don't read letters or words. They read tokens, and you can build the vocabulary yourself.",
+    tagline: "Build a real chatbot-style vocabulary by gluing together the letter pairs that show up most.",
     intro:
-      "<p>Before text reaches a model, a <b>tokenizer</b> chops it into pieces from a fixed vocabulary, and each piece becomes a number. Most LLMs build that vocabulary with <b>byte-pair encoding</b> (BPE): start from single characters, find the pair that appears side by side most often, glue it into a new token, and repeat.</p><p>Press <b>Merge</b> to run one round. Watch common chunks like <code>▁the</code> form first. The <code>▁</code> marks the start of a word.</p>",
-    explainTitle: "Why tokens, and why they're weird",
-    explain:
-      "<p>Characters make sequences very long, and whole words leave too many possibilities to cover. BPE sits between the two: frequent words become single tokens, and rare words break into familiar pieces, so no word is ever impossible to spell.</p><ul><li>Real tokenizers run tens of thousands of merges over terabytes of text. GPT-style vocabularies hold 50,000 to 200,000 tokens.</li><li>They start from <b>bytes</b> rather than characters, so any text, emoji, or file can be encoded. This workshop starts from characters, which is why an unseen symbol shows up as unknown.</li><li>Token boundaries explain classic LLM quirks: counting the letters in <i>strawberry</i> is hard when the model sees <code>▁str</code>·<code>aw</code>·<code>berry</code> rather than letters. Arithmetic is awkward when numbers split unevenly.</li><li>Pricing and context limits are measured in tokens, so text that compresses badly (rare languages, unusual code) costs more.</li></ul>",
-    challenges: [
-      { id: "merge", title: "First merge", hint: "Run one merge and see which pair wins." },
-      { id: "compress", title: "Compressor", hint: "Get the training text to 3 or more characters per token." },
-      { id: "split", title: "Split a stranger", hint: "Tokenize a made-up word that breaks into 3 or more pieces." },
-      { id: "unk", title: "Off the map", hint: "Tokenize a character the tokenizer never saw during training." },
+      "<p>Real chatbots use a middle ground between letters and words. Start with single letters. Find the two neighbors that appear together most often, like <code>t</code> + <code>h</code>, and glue them into a new token <code>th</code>. Repeat. This is called <b>byte-pair encoding</b>.</p><p>Press <b>Merge</b> and watch common chunks grow. The <code>▁</code> symbol marks the start of a word.</p>",
+    words: [
+      ["Merge", "Glue the most common neighboring pair into one new token."],
+      ["Byte-pair encoding (BPE)", "Building a vocabulary by repeating merges, many thousands of times."],
+      ["▁", "Marks the start of a word, so “▁the” (a whole word) differs from “the” inside “other”."],
     ],
-    tries: ["Paste a paragraph from another language, reset, and see which merges it learns.", "Try the code sample. Indentation and print( become tokens of their own."],
+    explainTitle: "Why chatbots can't count letters",
+    explain:
+      "<p>Common words become single tokens, and rare words break into familiar pieces, so no word is ever unknown.</p><ul><li>Real tokenizers do tens of thousands of merges over huge amounts of text, ending with 50,000 to 200,000 tokens.</li><li>They start from computer <b>bytes</b> instead of letters, so emoji and any language work too.</li><li>This explains a famous chatbot mistake: asked how many r's are in “strawberry”, a model sees pieces like <code>▁str</code> · <code>aw</code> · <code>berry</code>, not individual letters.</li><li>Chatbot limits and prices are counted in tokens, not words. A token is roughly ¾ of an English word.</li></ul>",
+    challenges: [
+      { id: "merge", title: "Do your first merge", hint: "Press Merge once.", how: "Press the Merge button. Look at the list of merges to see which pair won." },
+      { id: "five", title: "Do 5 merges", hint: "Watch the token count drop.", how: "Press Merge four more times, or press Merge ×10." },
+      { id: "split", title: "Split a made-up word", hint: "Type a new word in the “Try the tokenizer” box.", how: "After a few merges, type a made-up word like “catmatter” in the box at the bottom. It's built from pieces the tokenizer already knows." },
+      { id: "compress", bonus: true, title: "Compressor", hint: "Get 3 or more letters per token on the training text.", how: "Keep pressing Merge ×10 until “Chars / token” reaches 3." },
+      { id: "unk", bonus: true, title: "Off the map", hint: "Type a character the tokenizer never saw.", how: "Type a symbol like “@” or “z” into the test box." },
+    ],
     mount(stage, ctx) {
       let text = SAMPLES.cats;
       let merges = [];
@@ -67,7 +71,7 @@
       const chipsBox = el("div", { class: "chips" });
       const pairBox = el("div", { class: "bars" });
       const mergeList = el("ol", { class: "merges" });
-      const testIn = el("input", { class: "txt", id: "tok-test", value: "the bat sat on a catamaran", style: { width: "100%" } });
+      const testIn = el("input", { class: "txt", id: "tok-test", value: "the cat sat on the mat", style: { width: "100%" } });
       const testChips = el("div", { class: "chips" });
       const testNote = el("p", { class: "note" });
       const stChars = TM.stat("Characters"), stToks = TM.stat("Tokens"), stVocab = TM.stat("Vocab size"), stRatio = TM.stat("Chars / token");
@@ -101,6 +105,7 @@
         merges.push([a, b]);
         for (const [w, s] of segs) segs.set(w, applyMerges(s, [[a, b]]));
         ctx.award("merge");
+        if (merges.length >= 5) ctx.award("five");
         return true;
       }
 
@@ -148,7 +153,7 @@
         const out = [];
         for (const w of words) {
           const seq = applyMerges([...w], merges);
-          if (!known.has(w) && seq.length >= 3 && w.length > 3) bigSplit = true;
+          if (!known.has(w) && seq.length >= 2 && seq.length < w.length && w.length > 3) bigSplit = true;
           for (const t of seq) {
             if (!idOf.has(t) && !baseSet.has(t)) {
               unk = true;

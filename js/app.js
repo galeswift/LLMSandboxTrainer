@@ -7,32 +7,49 @@
   let cleanup = [];
   let currentId = null;
 
+  const WINGS = [
+    { id: "numbers", name: "Numbers", color: "--h1", blurb: "How a computer holds data: lists, grids, and the multiplying that powers everything." },
+    { id: "neurons", name: "Neurons", color: "--h2", blurb: "The tiny building block of every AI: multiply, add, and decide." },
+    { id: "learning", name: "Learning", color: "--h3", blurb: "How a model gets less wrong by itself, one small step at a time." },
+    { id: "language", name: "Language", color: "--h5", blurb: "Turning words into numbers, and numbers back into words." },
+  ];
+
+  // Hall numbers and "next" links follow registration order.
+  TM.exhibits.forEach((ex, i) => {
+    ex.hall = i + 1;
+    ex.nextEx = TM.exhibits[i + 1] || null;
+    ex.prevEx = TM.exhibits[i - 1] || null;
+  });
   const exById = (id) => TM.exhibits.find((e) => e.id === id);
+  const wingOf = (ex) => WINGS.find((w) => w.id === ex.wing) || WINGS[0];
+  const mainChallenges = (ex) => ex.challenges.filter((c) => !c.bonus);
+  const mainDone = (ex) => mainChallenges(ex).filter((c) => TM.hasStamp(ex.id, c.id)).length;
 
   function renderMap() {
-    mapList.replaceChildren(
-      ...TM.exhibits.map((ex) => {
-        const n = TM.stampCount(ex.id);
-        const done = n === ex.challenges.length;
-        return el(
-          "li",
-          null,
+    const items = [];
+    for (const w of WINGS) {
+      items.push(el("li", { class: "map-wing" }, `${w.name}`));
+      for (const ex of TM.exhibits.filter((e) => e.wing === w.id)) {
+        const n = mainDone(ex), m = mainChallenges(ex).length;
+        items.push(
           el(
-            "a",
-            {
-              class: "map-link",
-              href: `#${ex.id}`,
-              style: { "--hc": `var(${ex.color})` },
-              "aria-current": currentId === ex.id ? "page" : null,
-            },
-            el("span", { class: "hall-tag" }, ex.hall),
-            el("span", null, ex.short || ex.title),
-            el("span", { class: `map-count${done ? " done" : ""}` }, `${n}/${ex.challenges.length}`)
+            "li",
+            null,
+            el(
+              "a",
+              { class: "map-link", href: `#${ex.id}`, style: { "--hc": `var(${ex.color})` }, "aria-current": currentId === ex.id ? "page" : null },
+              el("span", { class: "hall-tag" }, ex.hall),
+              el("span", null, ex.short || ex.title),
+              el("span", { class: `map-count${n === m ? " done" : ""}` }, n === m ? "✓" : `${n}/${m}`)
+            )
           )
         );
-      })
-    );
-    total.textContent = `${TM.totalStamps()} / ${TM.totalChallenges()} stamps`;
+      }
+    }
+    mapList.replaceChildren(...items);
+    const allMain = TM.exhibits.reduce((a, ex) => a + mainChallenges(ex).length, 0);
+    const gotMain = TM.exhibits.reduce((a, ex) => a + mainDone(ex), 0);
+    total.textContent = `${gotMain} / ${allMain} missions`;
   }
 
   function teardown() {
@@ -60,45 +77,39 @@
         el(
           "div",
           null,
-          el("h1", null, "Every language model is ", el("em", null, "numbers learning to guess the next word.")),
+          el("h1", null, "An AI chatbot is just ", el("em", null, "numbers learning to guess the next word.")),
           el(
             "p",
             null,
-            "Walk through eight hands-on halls, from a single grid of numbers to a machine that writes. Nothing here is a video: every exhibit is a live model running in your browser. Poke it, break it, and collect a passport stamp for each puzzle you solve."
+            `Walk through ${TM.exhibits.length} small, hands-on halls and see how it works, one idea at a time. Each hall has a few short missions. If you get stuck, every mission has a "Show me how" button. If you know y = mx + b, you already know enough to start.`
           ),
-          el(
-            "div",
-            { class: "cta-row" },
-            el("a", { class: "btn primary big", href: `#${first.id}` }, `Start at Hall 1: ${first.title}`),
-            el("a", { class: "btn big", href: "#arena" }, "Jump to live training")
-          )
+          el("div", { class: "cta-row" }, el("a", { class: "btn primary big", href: `#${first.id}` }, `Start at Hall 1: ${first.title}`))
         ),
         art
       ),
-      el(
-        "section",
-        null,
-        el("h2", { class: "route-title" }, "The route"),
+      ...WINGS.map((w) =>
         el(
-          "p",
-          { class: "route-sub" },
-          "The halls follow the order a model is built in: data becomes tensors, tensors flow through neurons, a loss tells them how wrong they are, and gradient descent makes them less wrong. Then the language parts: tokens, embeddings, attention, and finally generation."
-        )
-      ),
-      el(
-        "div",
-        { class: "route" },
-        TM.exhibits.map((ex) =>
+          "section",
+          { class: "wing", style: { "--hc": `var(${w.color})` } },
+          el("div", { class: "wing-head" }, el("h2", { class: "route-title" }, `${w.name} wing`), el("p", { class: "route-sub" }, w.blurb)),
           el(
-            "a",
-            { class: "route-card", href: `#${ex.id}`, style: { "--hc": `var(${ex.color})` } },
-            el("div", { class: "route-card-top" }, el("span", { class: "hall-tag" }, ex.hall), el("h3", null, ex.title)),
-            el("p", null, ex.tagline),
-            el(
-              "div",
-              { class: "dots", "aria-label": `${TM.stampCount(ex.id)} of ${ex.challenges.length} stamps` },
-              ex.challenges.map((c) => el("i", { class: TM.hasStamp(ex.id, c.id) ? "on" : "" }))
-            )
+            "div",
+            { class: "route" },
+            TM.exhibits
+              .filter((ex) => ex.wing === w.id)
+              .map((ex) =>
+                el(
+                  "a",
+                  { class: "route-card", href: `#${ex.id}`, style: { "--hc": `var(${ex.color})` } },
+                  el("div", { class: "route-card-top" }, el("span", { class: "hall-tag" }, ex.hall), el("h3", null, ex.title)),
+                  el("p", null, ex.tagline),
+                  el(
+                    "div",
+                    { class: "dots", "aria-label": `${mainDone(ex)} of ${mainChallenges(ex).length} missions done` },
+                    ex.challenges.map((c) => el("i", { class: `${TM.hasStamp(ex.id, c.id) ? "on" : ""}${c.bonus ? " bonus" : ""}` }))
+                  )
+                )
+              )
           )
         )
       )
@@ -107,7 +118,7 @@
     cleanup.push(lobbyArt(art));
   }
 
-  // A small ambient scene: tokens flowing through a stack of layers.
+  // A small ambient scene: words flowing through a stack of layers.
   function lobbyArt(c) {
     const ctx = c.ctx;
     const W = c.W, H = c.H;
@@ -131,8 +142,7 @@
     const hues = ["--h1", "--h2", "--h3", "--h4", "--h5"];
     function draw() {
       const ink = TM.css("--ink"), muted = TM.css("--muted");
-      const bg = TM.css("--panel");
-      ctx.fillStyle = bg;
+      ctx.fillStyle = TM.css("--panel");
       ctx.fillRect(0, 0, W, H);
       for (let l = 0; l < layers - 1; l++) {
         for (const [i, j, w] of weights[l]) {
@@ -170,9 +180,9 @@
       ctx.font = "700 11px " + TM.css("--f-body");
       ctx.fillStyle = muted;
       ctx.textAlign = "left";
-      ctx.fillText("INPUT", 52, 30);
+      ctx.fillText("WORDS IN", 44, 30);
       ctx.textAlign = "right";
-      ctx.fillText("NEXT-TOKEN GUESS", W - 44, 30);
+      ctx.fillText("NEXT-WORD GUESS", W - 44, 30);
       t++;
       if (!reduce) raf = requestAnimationFrame(draw);
     }
@@ -182,20 +192,42 @@
 
   // ---------- Exhibit ----------
   function renderExhibit(ex) {
-    const stampEls = {};
-    const challengeList = el(
-      "ul",
-      { class: "challenges" },
-      ex.challenges.map((c) => {
-        const s = el("div", { class: `stamp${TM.hasStamp(ex.id, c.id) ? " on" : ""}`, "aria-hidden": "true" }, TM.hasStamp(ex.id, c.id) ? "done" : "");
-        stampEls[c.id] = s;
-        return el(
-          "li",
-          { class: "challenge" },
-          s,
-          el("div", null, el("div", { class: "challenge-title" }, c.title), el("div", { class: "challenge-hint" }, c.hint))
-        );
-      })
+    const wing = wingOf(ex);
+    const rows = {};
+    const missionList = el("ol", { class: "missions" });
+    function paintMissions() {
+      const current = ex.challenges.find((c) => !c.bonus && !TM.hasStamp(ex.id, c.id));
+      for (const c of ex.challenges) {
+        const r = rows[c.id];
+        const done = TM.hasStamp(ex.id, c.id);
+        r.li.classList.toggle("done", done);
+        r.li.classList.toggle("current", c === current);
+        r.stamp.classList.toggle("on", done);
+        r.stamp.textContent = done ? "done" : c.bonus ? "bonus" : "";
+      }
+      allDone.hidden = !!current;
+    }
+    ex.challenges.forEach((c) => {
+      const stamp = el("div", { class: "stamp", "aria-hidden": "true" });
+      const li = el(
+        "li",
+        { class: `mission${c.bonus ? " is-bonus" : ""}` },
+        stamp,
+        el(
+          "div",
+          { class: "mission-body" },
+          el("div", { class: "challenge-title" }, c.bonus ? el("span", { class: "pill" }, "Bonus") : null, " ", c.title),
+          el("div", { class: "challenge-hint" }, c.hint),
+          c.how ? el("details", { class: "how" }, el("summary", null, "Show me how"), el("p", null, c.how)) : null
+        )
+      );
+      rows[c.id] = { li, stamp };
+      missionList.append(li);
+    });
+    const allDone = el(
+      "p",
+      { class: "note ok all-done" },
+      ex.nextEx ? el("span", null, "All missions done. ", el("a", { href: `#${ex.nextEx.id}` }, `On to Hall ${ex.nextEx.hall}: ${ex.nextEx.title} →`)) : "All missions done. You've walked the whole museum!"
     );
 
     const stage = el("div", { class: "stage" });
@@ -206,47 +238,48 @@
         "header",
         { class: "placard", style: { "--hc": `var(${ex.color})` } },
         el("span", { class: "hall-tag" }, ex.hall),
-        el(
-          "div",
-          null,
-          el("div", { class: "placard-kicker" }, `Hall ${ex.hall}`),
-          el("h1", null, ex.title),
-          el("p", { class: "tagline" }, ex.tagline)
-        )
+        el("div", null, el("div", { class: "placard-kicker" }, `Hall ${ex.hall} · ${wing.name} wing`), el("h1", null, ex.title), el("p", { class: "tagline" }, ex.tagline))
       ),
-      el("section", { class: "intro", html: ex.intro }),
+      el(
+        "div",
+        { class: "top-row" },
+        el("section", { class: "intro", html: ex.intro }),
+        el("section", { class: "panel mission-panel" }, el("div", { class: "eyebrow" }, "Your missions"), missionList, allDone)
+      ),
       stage,
       el(
         "div",
         { class: "below" },
         el(
-          "section",
-          { class: "panel" },
-          el("div", { class: "eyebrow" }, "Behind the glass"),
-          el("h2", null, ex.explainTitle || "What's really happening"),
+          "details",
+          { class: "panel deeper" },
+          el("summary", null, el("span", { class: "eyebrow" }, "Go deeper (optional)"), el("h2", null, ex.explainTitle || "What's really happening")),
           el("div", { class: "explain", html: ex.explain })
         ),
-        el(
-          "section",
-          { class: "panel" },
-          el("div", { class: "eyebrow" }, "Passport"),
-          el("h2", null, "Challenges"),
-          challengeList,
-          ex.tries && ex.tries.length
-            ? el("div", null, el("div", { class: "eyebrow", style: { marginBottom: "6px" } }, "Also try"), el("ul", { class: "tries" }, ex.tries.map((t) => el("li", null, t))))
-            : null,
-          ex.next ? el("a", { class: "btn", href: `#${ex.next}` }, `Next: Hall ${exById(ex.next).hall}, ${exById(ex.next).title} →`) : null
-        )
+        ex.words && ex.words.length
+          ? el(
+              "section",
+              { class: "panel" },
+              el("div", { class: "eyebrow" }, "New words"),
+              el("dl", { class: "words" }, ex.words.flatMap(([t, d]) => [el("dt", null, t), el("dd", null, d)]))
+            )
+          : null
+      ),
+      el(
+        "nav",
+        { class: "hall-nav", "aria-label": "Hall navigation" },
+        ex.prevEx ? el("a", { class: "btn", href: `#${ex.prevEx.id}` }, `← Hall ${ex.prevEx.hall}: ${ex.prevEx.title}`) : el("a", { class: "btn", href: "#" }, "← Lobby"),
+        ex.nextEx ? el("a", { class: "btn primary", href: `#${ex.nextEx.id}` }, `Hall ${ex.nextEx.hall}: ${ex.nextEx.title} →`) : el("a", { class: "btn primary", href: "#" }, "Back to the lobby")
       )
     );
     main.replaceChildren(page);
     window.scrollTo(0, 0);
+    paintMissions();
 
     const onStamp = (d) => {
-      if (!d || d.ex !== ex.id || !stampEls[d.ch]) return;
-      const s = stampEls[d.ch];
-      s.classList.add("on", "fresh");
-      s.textContent = "done";
+      if (!d || d.ex !== ex.id || !rows[d.ch]) return;
+      paintMissions();
+      rows[d.ch].stamp.classList.add("fresh");
     };
     TM.on("stamp", onStamp);
     cleanup.push(() => TM.off("stamp", onStamp));
@@ -287,11 +320,12 @@
     const ch = ex && ex.challenges.find((c) => c.id === d.ch);
     if (!ch) return;
     document.querySelectorAll(".toast").forEach((t) => t.remove());
+    const left = mainChallenges(ex).length - mainDone(ex);
     const t = el(
       "div",
       { class: "toast", role: "status", style: { "--accent": `var(${ex.color})` } },
       el("span", { class: "hall-tag", style: { "--hc": `var(${ex.color})`, width: "28px", height: "28px" } }, ex.hall),
-      el("div", null, `Stamp earned: ${ch.title}`, el("small", null, `${TM.totalStamps()} of ${TM.totalChallenges()} collected`))
+      el("div", null, `Mission complete: ${ch.title}`, el("small", null, left ? `${left} more in this hall` : "Hall complete!"))
     );
     document.body.append(t);
     clearTimeout(toastTimer);
@@ -323,7 +357,7 @@
       route();
     } else {
       b.dataset.armed = "1";
-      b.textContent = "Click again to erase all stamps";
+      b.textContent = "Click again to erase all progress";
       setTimeout(() => {
         b.textContent = "Reset passport";
         delete b.dataset.armed;

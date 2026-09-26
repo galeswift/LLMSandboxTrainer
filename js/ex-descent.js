@@ -19,25 +19,29 @@
 
   TM.register({
     id: "descent",
-    hall: 3,
-    title: "Gradient Descent Hill",
-    short: "Descent",
+    wing: "learning",
+    title: "Two-Knob Landscape",
+    short: "Two-knob landscape",
     color: "--h3",
-    next: "arena",
-    tagline: "Training is a ball rolling downhill on a landscape of wrongness.",
+    tagline: "With two knobs, the wrongness score becomes a landscape of hills and valleys, seen from above.",
     intro:
-      "<p>To train a model, we measure how wrong it is with a <b>loss</b>: one number, lower is better. Every setting of the weights has a loss, so the weights and their losses form a landscape. Training means finding a low point.</p><p>This map shows a model with just two weights. Click anywhere to drop a ball, then run. At each step the ball measures the slope under it (the <b>gradient</b>) and takes a step downhill, scaled by the <b>learning rate</b>.</p>",
-    explainTitle: "The update rule behind every LLM",
-    explain:
-      "<p>Each step does <code>w ← w − learning_rate × gradient</code>. That single line, repeated trillions of times over billions of weights, is how every modern language model is trained.</p><ul><li><b>Too small a learning rate</b> and training crawls. <b>Too big</b> and the ball overshoots the valley, lands higher up the far side, and flies off. Picking it is still a big part of the craft.</li><li><b>Ravines</b> are steep in one direction and nearly flat in another. Plain descent zig-zags across the steep walls while barely moving along the floor.</li><li><b>Momentum</b> lets the ball keep some of its previous velocity. Zig-zags cancel out, while steady downhill motion builds up speed. Adam, the optimizer used for most LLMs, combines momentum with a per-weight step size.</li><li><b>Local minima</b>: descent only sees the slope where it stands, so it can settle in a valley that isn't the lowest. In huge models this turns out to matter less than you'd think, because with billions of dimensions there's almost always some direction still going down.</li></ul>",
-    challenges: [
-      { id: "fast", title: "Speed run", hint: "On Bowl, get the loss under 0.001 within 10 steps." },
-      { id: "boom", title: "Blow it up", hint: "Find a learning rate that makes the ball fly off the map." },
-      { id: "trap", title: "Get trapped", hint: "On Twin valleys, come to rest in the higher, right-hand valley." },
-      { id: "ravine", title: "Cross the ravine", hint: "On Ravine, reach loss under 0.001 within 80 steps. Momentum helps." },
-      { id: "egg", title: "Escape the egg crate", hint: "On Egg crate, start at least 2 away from the center and still reach loss under 0.01." },
+      "<p>Last hall had one knob, so the score was a curve. With two knobs, every spot on this map is one setting of both knobs, and its color is the score. Stronger color means more wrong. The ball uses the same rule: feel the slope, step downhill.</p><p>Click anywhere on the map to drop the ball, then press <b>Run</b>. Try the different landscapes.</p>",
+    words: [
+      ["Landscape", "A map of the wrongness score for every combination of knob settings."],
+      ["Valley (minimum)", "A low spot where the ball comes to rest."],
+      ["Local minimum", "A valley that isn't the lowest one. The ball can get stuck there."],
+      ["Momentum", "Letting the ball keep some speed from its last step, like a real rolling ball."],
     ],
-    tries: ["On Bowl, try a learning rate of exactly 1.0. The ball jumps to the bottom in one step, because for this surface that is the perfect step size.", "Set momentum to 0.95 on Bowl and watch the ball orbit the minimum before it settles."],
+    explainTitle: "Landscapes with billions of directions",
+    explain:
+      "<p>A real chatbot has billions of knobs, so its landscape has billions of directions. Nobody can draw it, but the ball-rolling rule still works: measure the slope in every direction at once, and step downhill.</p><ul><li><b>Twin valleys</b> show the danger of local minima: the ball only sees the ground under it, so it can settle in the wrong valley.</li><li><b>Ravine</b> is steep one way and flat the other. The ball zig-zags. <b>Momentum</b> smooths that out, and the popular training method “Adam” uses momentum.</li><li>Surprisingly, in huge models getting stuck is rarer than you'd expect: with so many directions, there's almost always one that still goes down.</li></ul>",
+    challenges: [
+      { id: "bottom", title: "Roll the ball to the bottom of the Bowl", hint: "Press Run and wait for it to settle.", how: "Pick “Bowl”, press Run, and wait. The score needs to drop below 0.01." },
+      { id: "fast", title: "Reach the bottom of the Bowl in 10 steps or fewer", hint: "Raise the learning rate.", how: "Press Reset, drag the learning rate up to about 0.5, then press Run." },
+      { id: "trap", title: "Get stuck in the wrong valley", hint: "On Twin valleys, land in the right-hand valley.", how: "Pick “Twin valleys”, then click the map a little to the right of the middle to drop the ball there, and press Run. The right-hand valley is higher than the left one." },
+      { id: "ravine", bonus: true, title: "Cross the Ravine in 80 steps", hint: "Get the score under 0.001 within 80 steps.", how: "Pick Ravine, set momentum to about 0.8 and the learning rate to about 0.15, then Reset and Run." },
+      { id: "egg", bonus: true, title: "Escape the Egg crate", hint: "Start far from the center and still reach a score under 0.01.", how: "Use momentum around 0.9 with a learning rate around 0.1. The ball needs speed to roll over the little bumps." },
+    ],
     mount(stage, ctx) {
       const W = 520, H = 390;
       const cv = TM.canvas(W, H);
@@ -128,7 +132,8 @@
       }
 
       function checks(f) {
-        if (surfKey === "bowl" && f < 0.001 && steps <= 10) ctx.award("fast");
+        if (surfKey === "bowl" && f < 0.01) ctx.award("bottom");
+        if (surfKey === "bowl" && f < 0.01 && steps <= 10) ctx.award("fast");
         if (surfKey === "ravine" && f < 0.001 && steps <= 80) ctx.award("ravine");
         if (surfKey === "twin" && status === "settled" && p[0] > 0) ctx.award("trap");
         if (surfKey === "egg" && f < 0.01 && startDist >= 2) ctx.award("egg");

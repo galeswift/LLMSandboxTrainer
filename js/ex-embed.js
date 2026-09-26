@@ -67,24 +67,27 @@
 
   TM.register({
     id: "embed",
-    hall: 6,
-    title: "Embedding Space",
-    short: "Embeddings",
+    wing: "language",
+    title: "Word Map",
+    short: "Word map",
     color: "--h6",
-    next: "attention",
-    tagline: "Each token becomes a point in space, and nearby points mean similar things.",
+    tagline: "Each token gets a list of numbers that places it on a map of meaning. Similar words end up close together.",
     intro:
-      "<p>After tokenizing, the model looks up each token ID in a big table and gets back a list of numbers: its <b>embedding</b>. Directions in that space end up carrying meaning. Words used in similar ways land near each other, and relationships become arrows you can add and subtract.</p><p>These 25 words live in a 14-dimensional space. Real models use thousands of dimensions, but the math is the same. Pick two dimensions to look through, click a word to inspect it, and try vector arithmetic below.</p>",
-    explainTitle: "Meaning as geometry",
-    explain:
-      "<p>A real model is never told what its dimensions mean. It starts with random vectors and training nudges them so that predicting the next token gets easier. Meaningful directions come out as a side effect. For this exhibit we labeled the dimensions by hand (plus a little noise) so you can see what's going on.</p><ul><li><b>Similarity</b> is usually measured with <b>cosine similarity</b>: the angle between two vectors. 1 means the same direction, 0 means unrelated.</li><li><b>Analogies</b> work because a relationship is a consistent offset. <code>king − man</code> leaves roughly \"royalty\"; adding <code>woman</code> lands near <code>queen</code>. In real models this works often but not always.</li><li><b>PCA</b> finds the two directions along which the points spread out the most. It's how researchers get a first look at an embedding space too big to picture.</li><li>In an LLM this lookup table is just the first layer, and it's learned by gradient descent like every other weight.</li></ul>",
-    challenges: [
-      { id: "inspect", title: "Look inside a word", hint: "Click any word to see its vector and nearest neighbors." },
-      { id: "analogy", title: "Land an analogy", hint: "Build your own A − B + C that lands exactly on the right answer." },
-      { id: "cross", title: "Beyond royalty", hint: "Land an analogy whose answer is a food or a place." },
-      { id: "pca", title: "Let the data choose", hint: "Switch to the PCA view." },
+      "<p>A token ID like 42 says nothing about meaning. So the model looks up each ID in a table and gets a list of numbers called an <b>embedding</b>. You can think of the list as coordinates on a map, where words with similar meanings sit near each other.</p><p>These 25 words each have 14 numbers. We can only draw 2 at a time, so pick which two to look through. Click any word to see its numbers.</p>",
+    words: [
+      ["Embedding", "The list of numbers that stands for a token's meaning."],
+      ["Similarity", "How closely two embeddings point the same way. 1 = same direction, 0 = unrelated."],
+      ["Word math", "Adding and subtracting embeddings, like king − man + woman."],
     ],
-    tries: ["puppy − dog + cat", "sushi − japan + italy", "paris − france + japan", "Put 'animal' on one axis and 'person' on the other and see the clusters separate."],
+    explainTitle: "Where do the numbers come from?",
+    explain:
+      "<p>In a real model, nobody chooses these numbers. They start out random, and training nudges them, the same way you watched the study-hours line get nudged. Words used in similar ways drift together because that makes guessing the next word easier.</p><ul><li>For this exhibit we set the numbers by hand and labeled each one (like “royalty” or “animal”) so you can see what's going on. Real embeddings have thousands of unlabeled numbers.</li><li><b>Word math</b> works because a relationship becomes a consistent direction. king − man leaves roughly “royalty”, and adding woman lands near queen.</li><li><b>PCA</b> is a trick for automatically picking the two most informative directions to draw.</li></ul>",
+    challenges: [
+      { id: "inspect", title: "Look inside a word", hint: "Click any word on the map.", how: "Click a dot or its label on the map. Its 14 numbers appear below, plus the words closest to it." },
+      { id: "royal", title: "Do the famous word math", hint: "king − man + woman = ?", how: "The boxes are already set to king − man + woman. Just press Calculate and see which word comes out on top." },
+      { id: "cross", title: "Word math with food or places", hint: "Try sushi − japan + italy.", how: "Set the three boxes to sushi, japan, italy and press Calculate. Or try paris − france + japan." },
+      { id: "pca", bonus: true, title: "Let the computer pick the view", hint: "Switch to the PCA view.", how: "Click “PCA (automatic)” at the top of the controls." },
+    ],
     mount(stage, ctx) {
       const s = { view: "axes", ax: "gender", ay: "royalty", sel: "queen", a: "king", b: "man", c: "woman" };
       const W = 520, H = 400;
@@ -208,6 +211,7 @@
           resNote.textContent = `${s.a} − ${s.b} + ${s.c} ≈ ${exact}. The offset from ${s.b} to ${s.a} carried over cleanly.`;
           if (!initial) {
             ctx.award("analogy");
+            if (s.a === "king" && s.b === "man" && s.c === "woman") ctx.award("royal");
             if (WORDS[exact].food || WORDS[exact].place) ctx.award("cross");
           }
         } else {
@@ -249,7 +253,7 @@
       });
       const wordSel = (id, key) => {
         const sel = el("select", { class: "sel", id, "aria-label": key }, names.map((n) => el("option", { value: n, selected: n === s[key] }, n)));
-        sel.addEventListener("change", () => { s[key] = sel.value; analogy(); });
+        sel.addEventListener("change", () => { s[key] = sel.value; resNote.className = "note"; resNote.textContent = "Press Calculate."; });
         return sel;
       };
       const legend = el(
@@ -267,14 +271,14 @@
             { class: "controls" },
             viewSeg.el,
             axBox,
-            el("div", { class: "ctl-group" }, el("span", { class: "ctl-label" }, "Vector arithmetic"), el("div", { class: "ctl-row" }, wordSel("em-a", "a"), el("span", { class: "mm-op", style: { fontSize: "18px" } }, "−"), wordSel("em-b", "b"), el("span", { class: "mm-op", style: { fontSize: "18px" } }, "+"), wordSel("em-c", "c"))),
+            el("div", { class: "ctl-group" }, el("span", { class: "ctl-label" }, "Word math"), el("div", { class: "ctl-row" }, wordSel("em-a", "a"), el("span", { class: "mm-op", style: { fontSize: "18px" } }, "−"), wordSel("em-b", "b"), el("span", { class: "mm-op", style: { fontSize: "18px" } }, "+"), wordSel("em-c", "c")), TM.btn("Calculate", () => analogy(false), "primary")),
             resBox,
             resNote
           ),
           el("div", { class: "controls" }, el("div", { class: "viz-wrap" }, cv), legend, el("p", { class: "note" }, "Click a word to inspect it. The grey arrow is the offset B → A; the dashed arrow applies that same offset starting from C."), vecBox, nnBox)
         )
       );
-      analogy(true);
+      resNote.textContent = "Press Calculate to see the answer.";
       showWord(s.sel);
     },
   });
